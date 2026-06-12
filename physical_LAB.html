@@ -1,0 +1,1686 @@
+```html
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>초정밀 인터랙티브 물리 실험실 (Physics Lab)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Pretendard:wght@300;400;500;600;700;800&display=swap');
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: #0b0f19;
+        }
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+        /* Glowing effects */
+        .glow-blue {
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+        }
+        .glow-red {
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.3);
+        }
+    </style>
+</head>
+<body class="text-slate-100 overflow-hidden h-screen flex flex-col">
+
+    <!-- 상단 헤더 -->
+    <header class="bg-slate-900/80 backdrop-blur border-b border-slate-800 px-6 py-4 flex justify-between items-center z-10 shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                <i data-lucide="atom" class="w-6 h-6 text-white animate-spin-slow"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+                    PHYSICS LAB <span class="text-xs bg-indigo-500/20 text-indigo-400 px-2.5 py-0.5 rounded-full border border-indigo-500/30">v2.0 PRO</span>
+                </h1>
+                <p class="text-xs text-slate-400">물리 법칙 시각화 및 실시간 수치해석 시뮬레이터</p>
+            </div>
+        </div>
+        
+        <!-- 글로벌 시뮬레이션 제어 컨트롤러 -->
+        <div class="flex items-center gap-4 bg-slate-950/80 px-4 py-2 rounded-xl border border-slate-800">
+            <button id="btn-play" class="p-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-all flex items-center gap-1.5 text-sm font-semibold shadow-lg shadow-emerald-600/20">
+                <i data-lucide="play" class="w-4 h-4"></i> 실행
+            </button>
+            <button id="btn-pause" class="p-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg transition-all flex items-center gap-1.5 text-sm font-semibold hidden">
+                <i data-lucide="pause" class="w-4 h-4"></i> 일시정지
+            </button>
+            <button id="btn-reset" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-all flex items-center gap-1.5 text-sm">
+                <i data-lucide="rotate-ccw" class="w-4 h-4"></i> 초기화
+            </button>
+            <div class="h-4 w-px bg-slate-800"></div>
+            <div class="flex items-center gap-2">
+                <span class="text-xs text-slate-400">속도 배율</span>
+                <select id="sim-speed" class="bg-slate-900 border border-slate-800 rounded px-2 py-1 text-xs text-indigo-400 font-mono">
+                    <option value="0.25">0.25x (슬로우)</option>
+                    <option value="0.5">0.5x</option>
+                    <option value="1.0" selected>1.0x (실시간)</option>
+                    <option value="2.0">2.0x (고속)</option>
+                </select>
+            </div>
+        </div>
+    </header>
+
+    <!-- 메인 레이아웃: 사이드바 + 메인 뷰포트 -->
+    <div class="flex flex-1 overflow-hidden">
+        
+        <!-- 좌측 사이드바 (8개 시뮬레이션 선택) -->
+        <aside class="w-80 bg-slate-900/50 border-r border-slate-800/80 p-4 flex flex-col justify-between overflow-y-auto shrink-0">
+            <div class="space-y-2">
+                <div class="text-xs font-semibold text-slate-400 tracking-wider uppercase mb-3 px-2">시뮬레이션 카테고리 (8선)</div>
+                
+                <!-- 1. 포물선 운동 -->
+                <button onclick="switchSim('projectile')" id="nav-projectile" class="sim-nav-btn w-full text-left p-3 rounded-xl transition-all flex items-start gap-3 border border-transparent bg-slate-800/40 text-slate-300 hover:bg-slate-800/80">
+                    <div class="p-2 rounded-lg bg-red-500/10 text-red-400 mt-0.5"><i data-lucide="target" class="w-5 h-5"></i></div>
+                    <div>
+                        <div class="font-semibold text-sm text-slate-200">1. 포물선 & 공기저항</div>
+                        <p class="text-xs text-slate-400 mt-0.5">항력계수($C_d$)와 풍속 벡터 실시간 제어</p>
+                    </div>
+                </button>
+
+                <!-- 2. 단진자 운동 -->
+                <button onclick="switchSim('pendulum')" id="nav-pendulum" class="sim-nav-btn w-full text-left p-3 rounded-xl transition-all flex items-start gap-3 border border-transparent text-slate-400 hover:bg-slate-800/30">
+                    <div class="p-2 rounded-lg bg-amber-500/10 text-amber-400 mt-0.5"><i data-lucide="activity" class="w-5 h-5"></i></div>
+                    <div>
+                        <div class="font-semibold text-sm text-slate-200">2. 단진자 & 실시간 에너지</div>
+                        <p class="text-xs text-slate-400 mt-0.5">역학적 에너지 보존과 감쇄 진동 분석</p>
+                    </div>
+                </button>
+
+                <!-- 3. 용수철 조화 진동 -->
+                <button onclick="switchSim('spring')" id="nav-spring" class="sim-nav-btn w-full text-left p-3 rounded-xl transition-all flex items-start gap-3 border border-transparent text-slate-400 hover:bg-slate-800/30">
+                    <div class="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 mt-0.5"><i data-lucide="git-commit" class="w-5 h-5"></i></div>
+                    <div>
+                        <div class="font-semibold text-sm text-slate-200">3. 용수철 & 감쇄 시스템</div>
+                        <p class="text-xs text-slate-400 mt-0.5">상태 공간 변위 및 공명/자유진동 해석</p>
+                    </div>
+                </button>
+
+                <!-- 4. 탄성/비탄성 충돌 -->
+                <button onclick="switchSim('collision')" id="nav-collision" class="sim-nav-btn w-full text-left p-3 rounded-xl transition-all flex items-start gap-3 border border-transparent text-slate-400 hover:bg-slate-800/30">
+                    <div class="p-2 rounded-lg bg-blue-500/10 text-blue-400 mt-0.5"><i data-lucide="shrink" class="w-5 h-5"></i></div>
+                    <div>
+                        <div class="font-semibold text-sm text-slate-200">4. 2D 탄성 및 비탄성 충돌</div>
+                        <p class="text-xs text-slate-400 mt-0.5">반발계수($e$)에 따른 에너지 손실 분석</p>
+                    </div>
+                </button>
+
+                <!-- 5. 천체 만유인력 궤도 -->
+                <button onclick="switchSim('orbit')" id="nav-orbit" class="sim-nav-btn w-full text-left p-3 rounded-xl transition-all flex items-start gap-3 border border-transparent text-slate-400 hover:bg-slate-800/30">
+                    <div class="p-2 rounded-lg bg-sky-500/10 text-sky-400 mt-0.5"><i data-lucide="sun" class="w-5 h-5"></i></div>
+                    <div>
+                        <div class="font-semibold text-sm text-slate-200">5. 만유인력 다체 궤도</div>
+                        <p class="text-xs text-slate-400 mt-0.5">중력장 궤적 추적 및 중력 슬링샷 모사</p>
+                    </div>
+                </button>
+
+                <!-- 6. 파동의 간섭과 중첩 -->
+                <button onclick="switchSim('wave')" id="nav-wave" class="sim-nav-btn w-full text-left p-3 rounded-xl transition-all flex items-start gap-3 border border-transparent text-slate-400 hover:bg-slate-800/30">
+                    <div class="p-2 rounded-lg bg-purple-500/10 text-purple-400 mt-0.5"><i data-lucide="waves" class="w-5 h-5"></i></div>
+                    <div>
+                        <div class="font-semibold text-sm text-slate-200">6. 파동 간섭 & 푸리에 합성</div>
+                        <p class="text-xs text-slate-400 mt-0.5">두 파동의 위상차 중첩 및 합성파 검출</p>
+                    </div>
+                </button>
+
+                <!-- 7. 기하광학 및 굴절 (프리즘) -->
+                <button onclick="switchSim('optics')" id="nav-optics" class="sim-nav-btn w-full text-left p-3 rounded-xl transition-all flex items-start gap-3 border border-transparent text-slate-400 hover:bg-slate-800/30">
+                    <div class="p-2 rounded-lg bg-indigo-500/10 text-indigo-400 mt-0.5"><i data-lucide="spline" class="w-5 h-5"></i></div>
+                    <div>
+                        <div class="font-semibold text-sm text-slate-200">7. 굴절 및 전반사 (프리즘)</div>
+                        <p class="text-xs text-slate-400 mt-0.5">스넬의 법칙 시뮬레이션 및 분산 분석</p>
+                    </div>
+                </button>
+
+                <!-- 8. 전하와 전기장 -->
+                <button onclick="switchSim('electrostatic')" id="nav-electrostatic" class="sim-nav-btn w-full text-left p-3 rounded-xl transition-all flex items-start gap-3 border border-transparent text-slate-400 hover:bg-slate-800/30">
+                    <div class="p-2 rounded-lg bg-pink-500/10 text-pink-400 mt-0.5"><i data-lucide="sparkles" class="w-5 h-5"></i></div>
+                    <div>
+                        <div class="font-semibold text-sm text-slate-200">8. 쿨롱 전하와 전기장</div>
+                        <p class="text-xs text-slate-400 mt-0.5">점전하 분포에 따른 실시간 등전위선 매핑</p>
+                    </div>
+                </button>
+            </div>
+
+            <!-- 하단 정보창 -->
+            <div class="mt-4 p-4 bg-slate-950/60 rounded-xl border border-slate-800/80 text-xs text-slate-400 space-y-1">
+                <div class="font-semibold text-slate-300">💡 시뮬레이션 팁</div>
+                <p>화면 내 물체를 마우스/터치로 잡아서 던지거나 위치를 직접 바꿀 수 있습니다.</p>
+            </div>
+        </aside>
+
+        <!-- 메인 시뮬레이션 영역 -->
+        <main class="flex-1 flex flex-col md:flex-row overflow-hidden bg-slate-950 relative">
+            
+            <!-- 캔버스 전면 뷰포트 -->
+            <div class="flex-1 relative flex flex-col p-4 overflow-hidden">
+                <div class="flex-1 bg-slate-900/40 rounded-2xl border border-slate-800/50 overflow-hidden relative shadow-inner">
+                    <!-- 메인 물리 연산 캔버스 -->
+                    <canvas id="physics-canvas" class="w-full h-full block cursor-crosshair"></canvas>
+                    
+                    <!-- 실시간 데이터 HUD Overlay (우상단) -->
+                    <div class="absolute top-4 right-4 bg-slate-950/90 border border-slate-800 p-4 rounded-xl shadow-xl w-64 text-xs font-mono space-y-2 glow-blue text-slate-300 z-10">
+                        <div class="text-indigo-400 font-bold border-b border-slate-800 pb-1 flex items-center justify-between">
+                            <span>REALTIME HUD</span>
+                            <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        </div>
+                        <div id="hud-stats" class="space-y-1">
+                            <!-- JS를 통해 동적 삽입 -->
+                        </div>
+                    </div>
+                    
+                    <!-- 가이드 및 팁 메시지 (좌하단) -->
+                    <div class="absolute bottom-4 left-4 bg-slate-950/80 border border-slate-800/60 px-4 py-2.5 rounded-lg text-xs text-slate-300 pointer-events-none max-w-sm">
+                        <span class="font-bold text-indigo-400">💡 상호작용 가이드: </span>
+                        <span id="interaction-guide">마우스 드래그로 각도를 조절하고 발사하세요!</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 우측 컨트롤 & 그래프 패널 -->
+            <section class="w-full md:w-96 bg-slate-900 border-l border-slate-800/80 flex flex-col overflow-y-auto shrink-0">
+                <!-- 제어 매개변수 타이틀 -->
+                <div class="p-6 border-b border-slate-800 bg-slate-900/50">
+                    <h3 class="font-bold text-white flex items-center gap-2 text-lg">
+                        <i data-lucide="sliders" class="w-5 h-5 text-indigo-400"></i> 환경 매개변수 설정
+                    </h3>
+                    <p class="text-xs text-slate-400 mt-1">현실 세계 및 가상 세계의 물리 상수를 변경하세요.</p>
+                </div>
+
+                <!-- 컨트롤 요소 컨테이너 (시뮬레이션별로 동적 교체됨) -->
+                <div id="control-panel" class="p-6 space-y-6 flex-1">
+                    <!-- JS에 의해 채워짐 -->
+                </div>
+
+                <!-- 실시간 모니터링 그래프 (Canvas 기반 하단 임베디드) -->
+                <div class="p-6 border-t border-slate-800 bg-slate-950/40">
+                    <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
+                        <i data-lucide="trending-up" class="w-4 h-4 text-indigo-500"></i> 실시간 상태 분석 그래프
+                    </h4>
+                    <div class="h-32 bg-slate-950 rounded-xl border border-slate-800 overflow-hidden relative">
+                        <canvas id="graph-canvas" class="w-full h-full block"></canvas>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- UI 알림 모달/메시지 박스 -->
+    <div id="toast" class="fixed bottom-6 right-6 transform translate-y-20 opacity-0 bg-slate-900 border-2 border-indigo-500/50 text-indigo-200 px-5 py-3 rounded-xl shadow-2xl transition-all duration-300 z-50 flex items-center gap-2.5 text-sm">
+        <i data-lucide="info" class="w-5 h-5 text-indigo-400"></i>
+        <span id="toast-msg">시뮬레이션 정보가 정상적으로 로드되었습니다.</span>
+    </div>
+
+    <script>
+        // --- 글로벌 상태 정의 ---
+        let currentSim = 'projectile';
+        let isPlaying = false;
+        let speedMultiplier = 1.0;
+        let lastTime = 0;
+        let simulationTime = 0;
+
+        // 캔버스 엘리먼트 정의
+        const canvas = document.getElementById('physics-canvas');
+        const ctx = canvas.getContext('2d');
+        const graphCanvas = document.getElementById('graph-canvas');
+        const gctx = graphCanvas.getContext('2d');
+
+        // 드래그 상태 관리 변수
+        let isDragging = false;
+        let dragTarget = null;
+        let mouseX = 0;
+        let mouseY = 0;
+
+        // --- 시뮬레이션 매개변수 저장 공간 ---
+        const simParams = {
+            projectile: { g: 9.81, mass: 2.0, angle: 45, vel: 55, drag: 0.15, wind: 2.0 },
+            pendulum: { g: 9.81, len: 160, damp: 0.05, mass: 5, initialAngle: 45 },
+            spring: { k: 15.0, mass: 4.0, damping: 0.1, gravity: true },
+            collision: { restitution: 0.9, ball1Mass: 8, ball1VelX: 4, ball2Mass: 4, ball2VelX: -3 },
+            orbit: { G: 1.5, starMass: 10000, launchVel: 4.5, trailLength: 300 },
+            wave: { amp1: 40, freq1: 1.5, amp2: 40, freq2: 2.2, phaseDiff: 180 },
+            optics: { n1: 1.0, n2: 1.55, wavelength: 650, refractiveShape: 'prism' },
+            electrostatic: { k: 9000, gridStep: 25, resolution: 8, chargeMagnitude: 15 }
+        };
+
+        // --- 시뮬레이터 물리 물리 엔진 실시간 상태 구조체 ---
+        const simState = {
+            // 포물선
+            projectile: { x: 50, y: 350, vx: 0, vy: 0, path: [], targetX: 450, targetY: 350, isFlying: false },
+            // 단진자
+            pendulum: { theta: (45 * Math.PI) / 180, omega: 0, alpha: 0 },
+            // 용수철
+            spring: { y: 220, v: 0, a: 0 },
+            // 충돌
+            collision: {
+                b1: { x: 120, y: 150, r: 25, vx: 4, m: 8, color: '#ef4444' },
+                b2: { x: 400, y: 150, r: 18, vx: -3, m: 4, color: '#3b82f6' }
+            },
+            // 오빗
+            orbit: {
+                star: { x: 0, y: 0, m: 10000 },
+                planets: [] // {x, y, vx, vy, path:[], color}
+            },
+            // 파동
+            wave: { time: 0 },
+            // 광학
+            optics: { laserY: 200, laserAngle: 12 },
+            // 정전기장
+            electrostatic: {
+                charges: [
+                    { x: 180, y: 180, q: 20, color: '#ef4444' },
+                    { x: 380, y: 220, q: -20, color: '#3b82f6' }
+                ]
+            }
+        };
+
+        // --- 상태 모니터링 그래프 이력 배열 ---
+        let graphHistory = [];
+        const maxHistoryPoints = 120;
+
+        // --- 유틸리티 및 헬퍼 함수 ---
+        function triggerToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').textContent = msg;
+            toast.style.transform = 'translateY(0)';
+            toast.style.opacity = '1';
+            setTimeout(() => {
+                toast.style.transform = 'translateY(20px)';
+                toast.style.opacity = '0';
+            }, 3000);
+        }
+
+        // 반응형 캔버스 크기 업데이트
+        function resizeCanvases() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+
+            const grect = graphCanvas.parentElement.getBoundingClientRect();
+            graphCanvas.width = grect.width;
+            graphCanvas.height = grect.height;
+        }
+
+        // --- 시뮬레이션별 UI 패널 생성기 ---
+        const controlPanelConfig = {
+            projectile: () => `
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">발사 속도: <span class="text-indigo-400 font-mono" id="val-vel">${simParams.projectile.vel}</span> m/s</label>
+                        <input type="range" id="param-vel" min="10" max="100" value="${simParams.projectile.vel}" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">발사 각도: <span class="text-indigo-400 font-mono" id="val-angle">${simParams.projectile.angle}</span>°</label>
+                        <input type="range" id="param-angle" min="0" max="90" value="${simParams.projectile.angle}" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">공기 저항계수 ($C_d$): <span class="text-indigo-400 font-mono" id="val-drag">${simParams.projectile.drag}</span></label>
+                        <input type="range" id="param-drag" min="0" max="1" step="0.01" value="${simParams.projectile.drag}" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">바람 속도 (풍속): <span class="text-indigo-400 font-mono" id="val-wind">${simParams.projectile.wind}</span> m/s</label>
+                        <input type="range" id="param-wind" min="-15" max="15" step="0.5" value="${simParams.projectile.wind}" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                    <button onclick="fireProjectile()" class="w-full mt-2 py-2.5 bg-red-600 hover:bg-red-500 rounded-xl font-bold flex items-center justify-center gap-2 text-white shadow-lg shadow-red-600/20">
+                        <i data-lucide="zap" class="w-4 h-4"></i> 포탄 발사하기 (Fire)
+                    </button>
+                </div>
+            `,
+            pendulum: () => `
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">줄의 길이 (Length): <span class="text-indigo-400 font-mono" id="val-len">${simParams.pendulum.len}</span> cm</label>
+                        <input type="range" id="param-len" min="80" max="250" value="${simParams.pendulum.len}" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">진자 질량 (Mass): <span class="text-indigo-400 font-mono" id="val-mass">${simParams.pendulum.mass}</span> kg</label>
+                        <input type="range" id="param-mass" min="1" max="15" value="${simParams.pendulum.mass}" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">공기 마찰 (Damping): <span class="text-indigo-400 font-mono" id="val-damp">${simParams.pendulum.damp}</span></label>
+                        <input type="range" id="param-damp" min="0" max="0.5" step="0.01" value="${simParams.pendulum.damp}" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">중력 가속도 (Gravity): <span class="text-indigo-400 font-mono" id="val-g">${simParams.pendulum.g}</span> m/s²</label>
+                        <input type="range" id="param-g" min="0" max="25" step="0.1" value="${simParams.pendulum.g}" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                </div>
+            `,
+            spring: () => `
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">탄성 계수 (k): <span class="text-indigo-400 font-mono" id="val-k">${simParams.spring.k}</span> N/m</label>
+                        <input type="range" id="param-k" min="5" max="50" value="${simParams.spring.k}" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">물체 질량 (Mass): <span class="text-indigo-400 font-mono" id="val-mass">${simParams.spring.mass}</span> kg</label>
+                        <input type="range" id="param-mass" min="1" max="15" value="${simParams.spring.mass}" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">점성 제동 상수 (c): <span class="text-indigo-400 font-mono" id="val-damping">${simParams.spring.damping}</span></label>
+                        <input type="range" id="param-damping" min="0" max="1" step="0.05" value="${simParams.spring.damping}" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-slate-950 rounded-xl border border-slate-800 mt-2">
+                        <span class="text-sm font-medium text-slate-300">지구 중력(9.8m/s²) 인가</span>
+                        <input type="checkbox" id="param-gravity" ${simParams.spring.gravity ? 'checked' : ''} class="w-4 h-4 text-blue-600 bg-slate-800 border-slate-700 rounded focus:ring-blue-500">
+                    </div>
+                </div>
+            `,
+            collision: () => `
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">반발 계수 (e): <span class="text-indigo-400 font-mono" id="val-restitution">${simParams.collision.restitution}</span></label>
+                        <input type="range" id="param-restitution" min="0" max="1" step="0.05" value="${simParams.collision.restitution}" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                    <div class="p-4 bg-slate-950/60 rounded-xl border border-slate-800/80 space-y-3">
+                        <div class="text-xs font-semibold text-red-400">🔴 Ball 1 (좌측)</div>
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">질량: <span id="val-b1m">${simParams.collision.ball1Mass}</span> kg</label>
+                            <input type="range" id="param-b1m" min="1" max="20" value="${simParams.collision.ball1Mass}" class="w-full h-1 bg-slate-800 rounded-lg">
+                        </div>
+                    </div>
+                    <div class="p-4 bg-slate-950/60 rounded-xl border border-slate-800/80 space-y-3">
+                        <div class="text-xs font-semibold text-blue-400">🔵 Ball 2 (우측)</div>
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">질량: <span id="val-b2m">${simParams.collision.ball2Mass}</span> kg</label>
+                            <input type="range" id="param-b2m" min="1" max="20" value="${simParams.collision.ball2Mass}" class="w-full h-1 bg-slate-800 rounded-lg">
+                        </div>
+                    </div>
+                </div>
+            `,
+            orbit: () => `
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">중력 상수 (G): <span class="text-indigo-400 font-mono" id="val-G">${simParams.orbit.G}</span></label>
+                        <input type="range" id="param-G" min="0.5" max="5" step="0.1" value="${simParams.orbit.G}" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">중심 항성 질량 (M): <span class="text-indigo-400 font-mono" id="val-starMass">${simParams.orbit.starMass}</span></label>
+                        <input type="range" id="param-starMass" min="5000" max="30000" step="500" value="${simParams.orbit.starMass}" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                    <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 text-xs text-slate-400">
+                        <span class="font-semibold text-slate-300">💡 궤도 발사법:</span><br>
+                        빈 공간을 마우스로 드래그하여 속도 벡터를 지정한 뒤 놓으면 새로운 소행성이 생성되어 공전 궤도에 진입합니다!
+                    </div>
+                </div>
+            `,
+            wave: () => `
+                <div class="space-y-4">
+                    <div class="p-3 bg-slate-950 rounded-xl border border-slate-800/50 space-y-3">
+                        <span class="text-xs font-bold text-red-400">🔴 파동 A</span>
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">진폭: <span id="val-amp1">${simParams.wave.amp1}</span> px</label>
+                            <input type="range" id="param-amp1" min="10" max="80" value="${simParams.wave.amp1}" class="w-full h-1 bg-slate-800">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">진동수: <span id="val-freq1">${simParams.wave.freq1}</span> Hz</label>
+                            <input type="range" id="param-freq1" min="0.5" max="4" step="0.1" value="${simParams.wave.freq1}" class="w-full h-1 bg-slate-800">
+                        </div>
+                    </div>
+                    <div class="p-3 bg-slate-950 rounded-xl border border-slate-800/50 space-y-3">
+                        <span class="text-xs font-bold text-blue-400">🔵 파동 B</span>
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">진폭: <span id="val-amp2">${simParams.wave.amp2}</span> px</label>
+                            <input type="range" id="param-amp2" min="10" max="80" value="${simParams.wave.amp2}" class="w-full h-1 bg-slate-800">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">진동수: <span id="val-freq2">${simParams.wave.freq2}</span> Hz</label>
+                            <input type="range" id="param-freq2" min="0.5" max="4" step="0.1" value="${simParams.wave.freq2}" class="w-full h-1 bg-slate-800">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">상대 위상차 (Phase): <span class="text-indigo-400 font-mono" id="val-phaseDiff">${simParams.wave.phaseDiff}</span>°</label>
+                        <input type="range" id="param-phaseDiff" min="0" max="360" step="5" value="${simParams.wave.phaseDiff}" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                </div>
+            `,
+            optics: () => `
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">입사 공간 굴절률 (n₁): <span class="text-indigo-400 font-mono" id="val-n1">${simParams.optics.n1}</span> (공기~수중)</label>
+                        <input type="range" id="param-n1" min="1.0" max="2.0" step="0.05" value="${simParams.optics.n1}" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">프리즘 매질 굴절률 (n₂): <span class="text-indigo-400 font-mono" id="val-n2">${simParams.optics.n2}</span> (유리~다이아)</label>
+                        <input type="range" id="param-n2" min="1.1" max="2.6" step="0.05" value="${simParams.optics.n2}" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">매질 형상 변경</label>
+                        <select id="param-shape" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-sm text-slate-300 mt-1">
+                            <option value="prism" ${simParams.optics.refractiveShape === 'prism' ? 'selected' : ''}>삼각 프리즘 (Prism)</option>
+                            <option value="flat" ${simParams.optics.refractiveShape === 'flat' ? 'selected' : ''}>평행 평판 평면 (Flat slab)</option>
+                        </select>
+                    </div>
+                    <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 text-xs text-slate-400">
+                        <span class="font-semibold text-slate-300">💡 빛 굴절 법칙:</span><br>
+                        빛의 파장 및 스넬의 법칙(<math><msub><mi>n</mi><mn>1</mn></msub><mi>sin</mi><msub><mi>θ</mi><mn>1</mn></msub><mo>=</mo><msub><mi>n</mi><mn>2</mn></msub><mi>sin</mi><msub><mi>θ</mi><mn>2</mn></msub></math>)이 완벽 설계되어 임계각 이상 진입 시 <strong>전반사(Total Reflection)</strong>를 관찰할 수 있습니다.
+                    </div>
+                </div>
+            `,
+            electrostatic: () => `
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">단위 전하 크기 (q): <span class="text-indigo-400 font-mono" id="val-chargeMagnitude">${simParams.electrostatic.chargeMagnitude}</span> nC</label>
+                        <input type="range" id="param-chargeMagnitude" min="5" max="40" value="${simParams.electrostatic.chargeMagnitude}" class="w-full h-1.5 bg-slate-800 rounded-lg">
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="addCharge(1)" class="flex-1 py-2 bg-red-600 hover:bg-red-500 rounded-xl font-bold text-xs flex items-center justify-center gap-1 text-white shadow-md">
+                            <i data-lucide="plus-circle" class="w-4 h-4"></i> 양전하(+) 추가
+                        </button>
+                        <button onclick="addCharge(-1)" class="flex-1 py-2 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold text-xs flex items-center justify-center gap-1 text-white shadow-md">
+                            <i data-lucide="minus-circle" class="w-4 h-4"></i> 음전하(-) 추가
+                        </button>
+                    </div>
+                    <button onclick="clearCharges()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 rounded-xl font-semibold text-xs text-slate-300 border border-slate-700">
+                        전하 전체 초기화
+                    </button>
+                </div>
+            `
+        };
+
+        // --- 시뮬레이션 전환 및 바인딩 기능 ---
+        function switchSim(simId) {
+            currentSim = simId;
+            document.querySelectorAll('.sim-nav-btn').forEach(btn => {
+                btn.classList.remove('bg-slate-800/40', 'text-indigo-400', 'border-indigo-500/30');
+                btn.classList.add('text-slate-400');
+            });
+            const activeNav = document.getElementById(`nav-${simId}`);
+            if (activeNav) {
+                activeNav.classList.add('bg-slate-800/40', 'text-indigo-400', 'border-indigo-500/30');
+                activeNav.classList.remove('text-slate-400');
+            }
+
+            // 가이드 문구 설정
+            const guides = {
+                projectile: '화면을 마우스로 잡고 당겨 탄도를 시뮬레이션 하거나 발사 버튼을 누르세요.',
+                pendulum: '진자 추를 마우스로 잡아서 움직인 후 마우스를 놓아 역학적 왕복운동을 시뮬레이션 해보세요.',
+                spring: '용수철 끝에 매달린 박스를 잡고 쭉 늘렸다 놓아 복원 거동을 관측하세요.',
+                collision: '구체들을 끌어놓고 재생을 누르거나 속도를 실시간 조절하여 운동량 보존을 확인하세요.',
+                orbit: '캔버스 위 임의의 빈 영역을 드래그해서 소행성을 사출 공전 궤도에 집어넣어 보세요.',
+                wave: '두 파동의 합성 및 상쇄 보강 간섭 상태를 우측 위상 차트와 슬라이더로 분석해보세요.',
+                optics: '광선 레이저 빔을 마우스로 직접 회전 및 드래그 해보세요.',
+                electrostatic: '전하를 직접 끌어서 위치를 변경하고 동적으로 변화하는 전기력선과 전위를 살펴보세요.'
+            };
+            document.getElementById('interaction-guide').textContent = guides[simId];
+
+            // 컨트롤 패널 갱신
+            document.getElementById('control-panel').innerHTML = controlPanelConfig[simId]();
+            lucide.createIcons(); // 아이콘 활성화
+            
+            // 이벤트 위임 리스너 수립
+            bindControls();
+            
+            // 시뮬레이션 데이터 상태 초기화
+            resetSimulation();
+            triggerToast(`${activeNav.querySelector('.font-semibold').textContent} 가 시작되었습니다.`);
+        }
+
+        // --- 매개변수 실시간 조절 바인딩 ---
+        function bindControls() {
+            const panel = document.getElementById('control-panel');
+            panel.querySelectorAll('input[type="range"], select, input[type="checkbox"]').forEach(input => {
+                input.addEventListener('input', (e) => {
+                    const id = e.target.id.replace('param-', '');
+                    let val = e.target.type === 'checkbox' ? e.target.checked : parseFloat(e.target.value);
+                    
+                    // 형상 변경 등 예외 처리
+                    if(id === 'shape') val = e.target.value;
+
+                    simParams[currentSim][id] = val;
+                    
+                    // 수치 Label 동적 매핑 업데이트
+                    const indicator = document.getElementById(`val-${id}`);
+                    if (indicator) indicator.textContent = val;
+
+                    // 상태 변화에 즉시 적응하는 동적 변수 반영
+                    if (currentSim === 'collision') {
+                        if (id === 'b1m') { simState.collision.b1.m = val; simState.collision.b1.r = 15 + val * 1.5; }
+                        if (id === 'b2m') { simState.collision.b2.m = val; simState.collision.b2.r = 15 + val * 1.5; }
+                    }
+                    if (currentSim === 'spring') {
+                        // 중력 체크여부에 따른 평형위치 조율 리셋 필요 시
+                    }
+                });
+            });
+        }
+
+        // --- 물리 상태값 초기화 기능 ---
+        function resetSimulation() {
+            graphHistory = [];
+            simulationTime = 0;
+            
+            if (currentSim === 'projectile') {
+                simState.projectile.x = 50;
+                simState.projectile.y = canvas.height - 80;
+                simState.projectile.vx = 0;
+                simState.projectile.vy = 0;
+                simState.projectile.path = [];
+                simState.projectile.targetX = canvas.width - 150;
+                simState.projectile.targetY = canvas.height - 50;
+                simState.projectile.isFlying = false;
+            } 
+            else if (currentSim === 'pendulum') {
+                simState.pendulum.theta = (simParams.pendulum.initialAngle * Math.PI) / 180;
+                simState.pendulum.omega = 0;
+                simState.pendulum.alpha = 0;
+            } 
+            else if (currentSim === 'spring') {
+                simState.spring.y = 200;
+                simState.spring.v = 0;
+                simState.spring.a = 0;
+            } 
+            else if (currentSim === 'collision') {
+                simState.collision.b1 = { x: 120, y: canvas.height/2, r: 15 + simParams.collision.ball1Mass * 1.5, vx: simParams.collision.ball1VelX, m: simParams.collision.ball1Mass, color: '#ef4444' };
+                simState.collision.b2 = { x: canvas.width - 200, y: canvas.height/2, r: 15 + simParams.collision.ball2Mass * 1.5, vx: simParams.collision.ball2VelX, m: simParams.collision.ball2Mass, color: '#3b82f6' };
+            } 
+            else if (currentSim === 'orbit') {
+                simState.orbit.star = { x: canvas.width / 2, y: canvas.height / 2, m: simParams.orbit.starMass };
+                simState.orbit.planets = [
+                    {
+                        x: canvas.width / 2,
+                        y: canvas.height / 2 - 150,
+                        vx: 4.2,
+                        vy: 0,
+                        path: [],
+                        color: '#60a5fa'
+                    }
+                ];
+            }
+            else if (currentSim === 'wave') {
+                simState.wave.time = 0;
+            }
+            else if (currentSim === 'optics') {
+                simState.optics.laserY = canvas.height / 2 - 50;
+                simState.optics.laserAngle = 10;
+            }
+            else if (currentSim === 'electrostatic') {
+                simState.electrostatic.charges = [
+                    { x: canvas.width / 2 - 120, y: canvas.height / 2, q: 20, color: '#ef4444' },
+                    { x: canvas.width / 2 + 120, y: canvas.height / 2, q: -20, color: '#3b82f6' }
+                ];
+            }
+        }
+
+        // --- 개별 정전기 전하 조작 기능 ---
+        function addCharge(polarity) {
+            const rx = 100 + Math.random() * (canvas.width - 200);
+            const ry = 100 + Math.random() * (canvas.height - 200);
+            const qValue = polarity * simParams.electrostatic.chargeMagnitude;
+            simState.electrostatic.charges.push({
+                x: rx,
+                y: ry,
+                q: qValue,
+                color: polarity > 0 ? '#ef4444' : '#3b82f6'
+            });
+            triggerToast(`${polarity > 0 ? '양전하(+)' : '음전하(-)'} 가 추가되었습니다.`);
+        }
+        function clearCharges() {
+            simState.electrostatic.charges = [];
+            triggerToast('모든 점전하를 철거했습니다.');
+        }
+
+        // --- 포탄 시사 사출 함수 ---
+        function fireProjectile() {
+            const angleRad = (simParams.projectile.angle * Math.PI) / 180;
+            simState.projectile.x = 60;
+            simState.projectile.y = canvas.height - 100;
+            simState.projectile.vx = simParams.projectile.vel * Math.cos(angleRad) * 0.2; // 축소 계수 반영
+            simState.projectile.vy = -simParams.projectile.vel * Math.sin(angleRad) * 0.2;
+            simState.projectile.path = [];
+            simState.projectile.isFlying = true;
+            isPlaying = true;
+            document.getElementById('btn-play').classList.add('hidden');
+            document.getElementById('btn-pause').classList.remove('hidden');
+            triggerToast('포탄이 발사되었습니다!');
+        }
+
+        // --- 마우스 드래그 상호작용 물리 이벤트 핸들링 ---
+        function getMousePos(evt) {
+            const rect = canvas.getBoundingClientRect();
+            // 스케일 감안한 좌표 반환
+            return {
+                x: (evt.clientX - rect.left) * (canvas.width / rect.width),
+                y: (evt.clientY - rect.top) * (canvas.height / rect.height)
+            };
+        }
+
+        function handleMouseDown(evt) {
+            const pos = getMousePos(evt);
+            mouseX = pos.x;
+            mouseY = pos.y;
+            
+            if (currentSim === 'pendulum') {
+                const ox = canvas.width / 2;
+                const oy = 60;
+                const bx = ox + simParams.pendulum.len * Math.sin(simState.pendulum.theta);
+                const by = oy + simParams.pendulum.len * Math.cos(simState.pendulum.theta);
+                const dist = Math.hypot(pos.x - bx, pos.y - by);
+                if (dist < 30) {
+                    isDragging = true;
+                    dragTarget = 'pendulum-bob';
+                }
+            } 
+            else if (currentSim === 'spring') {
+                const bx = canvas.width / 2;
+                const by = simState.spring.y;
+                const dist = Math.hypot(pos.x - bx, pos.y - (by + 20)); // Mass Block의 중심
+                if (dist < 40) {
+                    isDragging = true;
+                    dragTarget = 'spring-mass';
+                    isPlaying = false; // 드래그 시 일시 정지
+                }
+            }
+            else if (currentSim === 'collision') {
+                const d1 = Math.hypot(pos.x - simState.collision.b1.x, pos.y - simState.collision.b1.y);
+                const d2 = Math.hypot(pos.x - simState.collision.b2.x, pos.y - simState.collision.b2.y);
+                if (d1 < simState.collision.b1.r) {
+                    isDragging = true;
+                    dragTarget = simState.collision.b1;
+                } else if (d2 < simState.collision.b2.r) {
+                    isDragging = true;
+                    dragTarget = simState.collision.b2;
+                }
+            }
+            else if (currentSim === 'electrostatic') {
+                for (let charge of simState.electrostatic.charges) {
+                    const dist = Math.hypot(pos.x - charge.x, pos.y - charge.y);
+                    if (dist < 20) {
+                        isDragging = true;
+                        dragTarget = charge;
+                        break;
+                    }
+                }
+            }
+            else if (currentSim === 'optics') {
+                const dist = Math.hypot(pos.x - 50, pos.y - simState.optics.laserY);
+                if (dist < 30) {
+                    isDragging = true;
+                    dragTarget = 'laser';
+                }
+            }
+            else if (currentSim === 'orbit') {
+                // 우주선 궤도 예측을 위한 마우스 사출 벡터 기안 시작
+                isDragging = true;
+                dragTarget = 'launch-vector';
+                // 드래그 시작 위치가 위성 발사점
+                simState.orbit.startLaunchX = pos.x;
+                simState.orbit.startLaunchY = pos.y;
+            }
+            else if (currentSim === 'projectile' && !simState.projectile.isFlying) {
+                const dLauncher = Math.hypot(pos.x - 60, pos.y - (canvas.height - 100));
+                if (dLauncher < 40) {
+                    isDragging = true;
+                    dragTarget = 'launcher';
+                }
+            }
+        }
+
+        function handleMouseMove(evt) {
+            if (!isDragging) return;
+            const pos = getMousePos(evt);
+
+            if (currentSim === 'pendulum' && dragTarget === 'pendulum-bob') {
+                const ox = canvas.width / 2;
+                const oy = 60;
+                // 새로운 각도 아크탄젠트로 연산
+                const dx = pos.x - ox;
+                const dy = pos.y - oy;
+                simState.pendulum.theta = Math.atan2(dx, dy);
+                simState.pendulum.omega = 0; // 드래그 중에는 정지
+            }
+            else if (currentSim === 'spring' && dragTarget === 'spring-mass') {
+                // 용수철은 수직 운동만 허용
+                const minY = 60;
+                const maxY = canvas.height - 80;
+                simState.spring.y = Math.max(minY, Math.min(maxY, pos.y - 20));
+                simState.spring.v = 0;
+            }
+            else if (currentSim === 'collision' && typeof dragTarget === 'object') {
+                // 수평 축을 따라 드래그
+                dragTarget.x = Math.max(dragTarget.r, Math.min(canvas.width - dragTarget.r, pos.x));
+            }
+            else if (currentSim === 'electrostatic' && typeof dragTarget === 'object') {
+                dragTarget.x = Math.max(20, Math.min(canvas.width - 20, pos.x));
+                dragTarget.y = Math.max(20, Math.min(canvas.height - 20, pos.y));
+            }
+            else if (currentSim === 'optics' && dragTarget === 'laser') {
+                simState.optics.laserY = Math.max(50, Math.min(canvas.height - 50, pos.y));
+                // x 위치와 y 위치의 차이를 이용해 레이저 각도 동적 회전 제어
+                const dx = pos.x - 50;
+                const dy = pos.y - simState.optics.laserY;
+                if(dx > 20) {
+                    simState.optics.laserAngle = Math.atan2(dy, dx) * (180 / Math.PI);
+                }
+            }
+            else if (currentSim === 'projectile' && dragTarget === 'launcher') {
+                const dx = pos.x - 60;
+                const dy = (canvas.height - 100) - pos.y;
+                if (dx > 5 && dy > 5) {
+                    const newAngle = Math.atan2(dy, dx) * (180 / Math.PI);
+                    const newVel = Math.min(100, Math.hypot(dx, dy) * 0.5);
+                    simParams.projectile.angle = Math.round(newAngle);
+                    simParams.projectile.vel = Math.round(newVel);
+                    document.getElementById('param-angle').value = simParams.projectile.angle;
+                    document.getElementById('param-vel').value = simParams.projectile.vel;
+                    document.getElementById('val-angle').textContent = simParams.projectile.angle;
+                    document.getElementById('val-vel').textContent = simParams.projectile.vel;
+                }
+            }
+            
+            mouseX = pos.x;
+            mouseY = pos.y;
+        }
+
+        function handleMouseUp() {
+            if (isDragging && currentSim === 'orbit' && dragTarget === 'launch-vector') {
+                // 드래그 벡터 힘을 속도로 치환하여 위성 발사
+                const rx = simState.orbit.startLaunchX;
+                const ry = simState.orbit.startLaunchY;
+                const vx = (rx - mouseX) * 0.05;
+                const vy = (ry - mouseY) * 0.05;
+                
+                simState.orbit.planets.push({
+                    x: rx,
+                    y: ry,
+                    vx: vx,
+                    vy: vy,
+                    path: [],
+                    color: `hsl(${Math.random() * 360}, 85%, 65%)`
+                });
+                triggerToast('위성이 성공적으로 사출되었습니다.');
+            }
+            isDragging = false;
+            dragTarget = null;
+        }
+
+        // 마우스 및 터치 리스너 연결
+        canvas.addEventListener('mousedown', handleMouseDown);
+        canvas.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+
+        canvas.addEventListener('touchstart', (e) => {
+            if (e.touches.length > 0) handleMouseDown(e.touches[0]);
+        });
+        canvas.addEventListener('touchmove', (e) => {
+            if (e.touches.length > 0) handleMouseMove(e.touches[0]);
+        });
+        canvas.addEventListener('touchend', handleMouseUp);
+
+
+        // --- 물리 연산 루프 (MAIN LOOP) ---
+        function updateAndRender(timestamp) {
+            if (!lastTime) lastTime = timestamp;
+            let dt = (timestamp - lastTime) / 1000;
+            // 프레임 드랍 대비 리밋 설정
+            if (dt > 0.1) dt = 0.1;
+            lastTime = timestamp;
+
+            const speed = isPlaying ? parseFloat(document.getElementById('sim-speed').value) : 0;
+            const simDt = dt * speed;
+
+            // 캔버스 비우기
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 8가지 시뮬레이션 물리 모델 계산 및 렌더링
+            if (currentSim === 'projectile') {
+                simulateProjectile(simDt);
+            } else if (currentSim === 'pendulum') {
+                simulatePendulum(simDt);
+            } else if (currentSim === 'spring') {
+                simulateSpring(simDt);
+            } else if (currentSim === 'collision') {
+                simulateCollision(simDt);
+            } else if (currentSim === 'orbit') {
+                simulateOrbit(simDt);
+            } else if (currentSim === 'wave') {
+                simulateWave(simDt);
+            } else if (currentSim === 'optics') {
+                simulateOptics(simDt);
+            } else if (currentSim === 'electrostatic') {
+                simulateElectrostatic(simDt);
+            }
+
+            // 실시간 상태 통계 그래프 그리기
+            drawGraph();
+
+            requestAnimationFrame(updateAndRender);
+        }
+
+        // --- 1. 포물선 시뮬레이션 엔진 ---
+        function simulateProjectile(dt) {
+            const p = simParams.projectile;
+            const s = simState.projectile;
+
+            const groundY = canvas.height - 80;
+
+            if (isPlaying && s.isFlying) {
+                // 공기 저항 및 바람 항력 벡터 연산
+                // F = m*a => a = F/m => g - (drag/m * v * v) + (wind/m)
+                const relativeVx = s.vx - (p.wind * 0.1);
+                const dragForceX = -p.drag * relativeVx * Math.abs(relativeVx);
+                const dragForceY = -p.drag * s.vy * Math.abs(s.vy);
+
+                const ax = dragForceX / p.mass;
+                const ay = p.g + (dragForceY / p.mass);
+
+                s.vx += ax * dt * 4; // 스케일 가속
+                s.vy += ay * dt * 4;
+
+                s.x += s.vx * dt * 30;
+                s.y += s.vy * dt * 30;
+
+                s.path.push({ x: s.x, y: s.y });
+                if (s.path.length > 250) s.path.shift();
+
+                // 표적 충돌 판단
+                const hitDist = Math.hypot(s.x - s.targetX, s.y - s.targetY);
+                if (hitDist < 25) {
+                    triggerToast('🎯 대성공! 목표 타겟 정밀 타격 완료!');
+                    s.isFlying = false;
+                    isPlaying = false;
+                    document.getElementById('btn-play').classList.remove('hidden');
+                    document.getElementById('btn-pause').classList.add('hidden');
+                }
+
+                // 지면 착지 판정
+                if (s.y >= groundY) {
+                    s.y = groundY;
+                    s.isFlying = false;
+                    triggerToast('포탄이 낙하하여 폭파되었습니다.');
+                }
+            }
+
+            // HUD 출력 매핑
+            const kineticEnergy = 0.5 * p.mass * (s.vx * s.vx + s.vy * s.vy);
+            const potentialEnergy = p.mass * p.g * Math.max(0, (groundY - s.y) * 0.1);
+            document.getElementById('hud-stats').innerHTML = `
+                <div>위치 X: <span class="text-white">${s.x.toFixed(1)} m</span></div>
+                <div>위치 Y: <span class="text-white">${Math.max(0, (groundY - s.y)*0.1).toFixed(1)} m</span></div>
+                <div>속도 V: <span class="text-emerald-400">${Math.hypot(s.vx, s.vy).toFixed(2)} m/s</span></div>
+                <div>운동에너지 (K): <span class="text-red-400">${kineticEnergy.toFixed(1)} J</span></div>
+                <div>위치에너지 (U): <span class="text-blue-400">${potentialEnergy.toFixed(1)} J</span></div>
+            `;
+
+            // 실시간 상태 데이터 그래프 수집
+            if(isPlaying) recordGraphData(kineticEnergy, potentialEnergy);
+
+            // 렌더링
+            // 지면
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(0, groundY, canvas.width, 80);
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(0, groundY);
+            ctx.lineTo(canvas.width, groundY);
+            ctx.stroke();
+
+            // 궤적
+            ctx.strokeStyle = 'rgba(239, 68, 68, 0.6)';
+            ctx.lineWidth = 2.5;
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            s.path.forEach((pt, i) => {
+                if (i === 0) ctx.moveTo(pt.x, pt.y);
+                else ctx.lineTo(pt.x, pt.y);
+            });
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // 발사대 (대포)
+            const angleRad = (p.angle * Math.PI) / 180;
+            const lLength = 40 + p.vel * 0.2;
+            ctx.save();
+            ctx.translate(60, groundY - 20);
+            ctx.rotate(-angleRad);
+            ctx.fillStyle = '#475569';
+            ctx.fillRect(0, -10, lLength, 20);
+            ctx.strokeStyle = '#64748b';
+            ctx.strokeRect(0, -10, lLength, 20);
+            ctx.restore();
+
+            // 대포 회전 피벗
+            ctx.beginPath();
+            ctx.arc(60, groundY - 20, 18, 0, Math.PI * 2);
+            ctx.fillStyle = '#334155';
+            ctx.fill();
+
+            // 타겟
+            ctx.beginPath();
+            ctx.arc(s.targetX, s.targetY, 20, 0, Math.PI * 2);
+            ctx.fillStyle = '#ef4444';
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(s.targetX, s.targetY, 12, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffffff';
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(s.targetX, s.targetY, 5, 0, Math.PI * 2);
+            ctx.fillStyle = '#ef4444';
+            ctx.fill();
+
+            // 포탄 발사체
+            if (s.isFlying) {
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, 8, 0, Math.PI * 2);
+                ctx.fillStyle = '#f59e0b';
+                ctx.shadowColor = '#f59e0b';
+                ctx.shadowBlur = 10;
+                ctx.fill();
+                ctx.shadowBlur = 0; // 초기화
+            }
+        }
+
+        // --- 2. 단진자 시뮬레이션 엔진 ---
+        function simulatePendulum(dt) {
+            const p = simParams.pendulum;
+            const s = simState.pendulum;
+
+            const ox = canvas.width / 2;
+            const oy = 60;
+
+            if (isPlaying && !isDragging) {
+                // 비선형 진자 동역학 공식: d²theta/dt² = - (g / L) * sin(theta) - damping * dtheta/dt
+                const lengthM = p.len / 100;
+                s.alpha = -(p.g / lengthM) * Math.sin(s.theta) - p.damp * s.omega;
+                s.omega += s.alpha * dt * 4;
+                s.theta += s.omega * dt * 4;
+            }
+
+            const bobX = ox + p.len * Math.sin(s.theta);
+            const bobY = oy + p.len * Math.cos(s.theta);
+
+            // 물리 에너지 모니터링 연산
+            const v = s.omega * (p.len / 100);
+            const kinetic = 0.5 * p.mass * v * v;
+            const h = (p.len / 100) * (1 - Math.cos(s.theta));
+            const potential = p.mass * p.g * h;
+            const total = kinetic + potential;
+
+            document.getElementById('hud-stats').innerHTML = `
+                <div>각도 (θ): <span class="text-white">${(s.theta * 180 / Math.PI).toFixed(1)} °</span></div>
+                <div>각속도 (ω): <span class="text-white">${s.omega.toFixed(2)} rad/s</span></div>
+                <div>운동에너지 (K): <span class="text-red-400">${kinetic.toFixed(2)} J</span></div>
+                <div>위치에너지 (U): <span class="text-blue-400">${potential.toFixed(2)} J</span></div>
+                <div>총에너지 (E): <span class="text-indigo-400">${total.toFixed(2)} J</span></div>
+            `;
+
+            if(isPlaying) recordGraphData(kinetic, potential);
+
+            // 렌더링
+            // 지지대 천장
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(ox - 60, oy - 15, 120, 15);
+            ctx.strokeStyle = '#334155';
+            ctx.strokeRect(ox - 60, oy - 15, 120, 15);
+
+            // 줄
+            ctx.beginPath();
+            ctx.moveTo(ox, oy);
+            ctx.lineTo(bobX, bobY);
+            ctx.strokeStyle = '#94a3b8';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // 진동 추 (Bob)
+            ctx.beginPath();
+            ctx.arc(bobX, bobY, 15 + p.mass * 1.2, 0, Math.PI * 2);
+            ctx.fillStyle = isDragging ? '#fb7185' : '#8b5cf6';
+            ctx.strokeStyle = '#cbd5e1';
+            ctx.lineWidth = 2;
+            ctx.fill();
+            ctx.stroke();
+
+            // 중심 피벗핀
+            ctx.beginPath();
+            ctx.arc(ox, oy, 6, 0, Math.PI * 2);
+            ctx.fillStyle = '#f59e0b';
+            ctx.fill();
+        }
+
+        // --- 3. 용수철 감쇄 진동 시뮬레이션 엔진 ---
+        function simulateSpring(dt) {
+            const p = simParams.spring;
+            const s = simState.spring;
+            const ox = canvas.width / 2;
+            const restLength = 180; // 기본 평형 길이
+
+            if (isPlaying && !isDragging) {
+                // Hooke's Law + Damping: F = -k * x - c * v + m * g
+                const displacement = s.y - restLength;
+                let restoringForce = -p.k * displacement * 0.1; // 스케일 조정
+                let dampingForce = -p.damping * s.v;
+                let gravityForce = p.gravity ? p.mass * 1.5 : 0; // 가상 중력 가중치
+
+                const totalForce = restoringForce + dampingForce + gravityForce;
+                s.a = totalForce / p.mass;
+                s.v += s.a * dt * 30;
+                s.y += s.v * dt * 30;
+            }
+
+            const boxWidth = 50 + p.mass * 2;
+            const boxHeight = 40 + p.mass * 1.5;
+
+            // 에너지 지표
+            const stretch = s.y - restLength;
+            const springPotential = 0.5 * p.k * (stretch * 0.05) * (stretch * 0.05);
+            const kinetic = 0.5 * p.mass * (s.v * 0.1) * (s.v * 0.1);
+            
+            document.getElementById('hud-stats').innerHTML = `
+                <div>변위 (x): <span class="text-white">${(stretch * 0.1).toFixed(2)} cm</span></div>
+                <div>속도 (v): <span class="text-white">${s.v.toFixed(1)} cm/s</span></div>
+                <div>탄성에너지 (Ue): <span class="text-blue-400">${springPotential.toFixed(2)} J</span></div>
+                <div>운동에너지 (K): <span class="text-red-400">${kinetic.toFixed(2)} J</span></div>
+            `;
+
+            if(isPlaying) recordGraphData(kinetic, springPotential);
+
+            // 렌더링
+            // 천장 지지대
+            ctx.fillStyle = '#334155';
+            ctx.fillRect(ox - 80, 20, 160, 15);
+
+            // 용수철 코일 그리기 (지그재그 패턴 수치 연산)
+            ctx.beginPath();
+            ctx.moveTo(ox, 35);
+            const numCoils = 16;
+            const coilGap = (s.y - 35) / numCoils;
+            for (let i = 0; i < numCoils; i++) {
+                const targetY = 35 + (i + 1) * coilGap;
+                let targetX = ox;
+                if (i < numCoils - 1) {
+                    targetX = (i % 2 === 0) ? ox - 20 : ox + 20;
+                }
+                ctx.lineTo(targetX, targetY);
+            }
+            ctx.strokeStyle = '#64748b';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // 부착 질량체 블록
+            ctx.fillStyle = isDragging ? '#f472b6' : '#ec4899';
+            ctx.strokeStyle = '#cbd5e1';
+            ctx.lineWidth = 2.5;
+            ctx.fillRect(ox - boxWidth / 2, s.y, boxWidth, boxHeight);
+            ctx.strokeRect(ox - boxWidth / 2, s.y, boxWidth, boxHeight);
+
+            // 중앙 평형 위치 보조 가이드 점선
+            ctx.beginPath();
+            ctx.setLineDash([5, 5]);
+            ctx.moveTo(ox - 100, restLength);
+            ctx.lineTo(ox + 100, restLength);
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.4)';
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        // --- 4. 2차원/1차원 충돌 시뮬레이션 엔진 ---
+        function simulateCollision(dt) {
+            const p = simParams.collision;
+            const s = simState.collision;
+
+            if (isPlaying && !isDragging) {
+                // 등속 직선 운동 연산
+                s.b1.x += s.b1.vx * dt * 25;
+                s.b2.x += s.b2.vx * dt * 25;
+
+                // 벽 바운딩 대치
+                if (s.b1.x < s.b1.r) { s.b1.x = s.b1.r; s.b1.vx *= -1; }
+                if (s.b2.x > canvas.width - s.b2.r) { s.b2.x = canvas.width - s.b2.r; s.b2.vx *= -1; }
+
+                // 구체간 물리적 충돌 연산 (완벽 1차원 충돌 수식 구현)
+                const dist = Math.abs(s.b1.x - s.b2.x);
+                if (dist <= (s.b1.r + s.b2.r)) {
+                    // 구체간 분할 및 위치 역추적을 통한 안착 오류 방지
+                    const overlap = (s.b1.r + s.b2.r) - dist;
+                    if(s.b1.x < s.b2.x) {
+                        s.b1.x -= overlap/2;
+                        s.b2.x += overlap/2;
+                    } else {
+                        s.b1.x += overlap/2;
+                        s.b2.x -= overlap/2;
+                    }
+
+                    // 운동량 보존과 반발계수를 활용한 충돌 후 속도 유도
+                    const m1 = s.b1.m;
+                    const m2 = s.b2.m;
+                    const u1 = s.b1.vx;
+                    const u2 = s.b2.vx;
+
+                    const v1 = ((m1 - p.restitution * m2) * u1 + (1 + p.restitution) * m2 * u2) / (m1 + m2);
+                    const v2 = ((1 + p.restitution) * m1 * u1 + (m2 - p.restitution * m1) * u2) / (m1 + m2);
+
+                    s.b1.vx = v1;
+                    s.b2.vx = v2;
+                    triggerToast('💥 정밀 탄성 충돌 발생!');
+                }
+            }
+
+            // 실시간 에너지 지수 산출
+            const mom1 = s.b1.m * s.b1.vx;
+            const mom2 = s.b2.m * s.b2.vx;
+            const ke1 = 0.5 * s.b1.m * s.b1.vx * s.b1.vx;
+            const ke2 = 0.5 * s.b2.m * s.b2.vx * s.b2.vx;
+
+            document.getElementById('hud-stats').innerHTML = `
+                <div class="text-red-400">적색구 속도: ${s.b1.vx.toFixed(2)} m/s</div>
+                <div class="text-blue-400">청색구 속도: ${s.b2.vx.toFixed(2)} m/s</div>
+                <div>총 운동량 (P): <span class="text-white">${(mom1 + mom2).toFixed(2)} kg·m/s</span></div>
+                <div>운동에너지 합: <span class="text-emerald-400">${(ke1 + ke2).toFixed(1)} J</span></div>
+            `;
+
+            if(isPlaying) recordGraphData(ke1, ke2);
+
+            // 가이드 트랙
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(50, canvas.height/2 + 30, canvas.width - 100, 10);
+
+            // Ball 1 (적색)
+            ctx.beginPath();
+            ctx.arc(s.b1.x, s.b1.y, s.b1.r, 0, Math.PI * 2);
+            ctx.fillStyle = s.b1.color;
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.fill();
+            ctx.stroke();
+            // 텍스트 인가
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '11px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${s.b1.m}kg`, s.b1.x, s.b1.y + 4);
+
+            // Ball 2 (청색)
+            ctx.beginPath();
+            ctx.arc(s.b2.x, s.b2.y, s.b2.r, 0, Math.PI * 2);
+            ctx.fillStyle = s.b2.color;
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillText(`${s.b2.m}kg`, s.b2.x, s.b2.y + 4);
+        }
+
+        // --- 5. 다체 중력 천체 궤도 시뮬레이션 엔진 ---
+        function simulateOrbit(dt) {
+            const p = simParams.orbit;
+            const s = simState.orbit;
+
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+            s.star.x = cx;
+            s.star.y = cy;
+
+            if (isPlaying) {
+                s.planets.forEach(planet => {
+                    const dx = s.star.x - planet.x;
+                    const dy = s.star.y - planet.y;
+                    const r = Math.hypot(dx, dy);
+
+                    if (r > 30) {
+                        // 뉴턴의 만유인력 공식 적용: F = G * M * m / r^2
+                        // 가속도 a = F/m = G * M / r^2
+                        const forceMagnitude = (p.G * s.star.m) / (r * r);
+                        const ax = forceMagnitude * (dx / r);
+                        const ay = forceMagnitude * (dy / r);
+
+                        planet.vx += ax * dt * 8;
+                        planet.vy += ay * dt * 8;
+                    }
+
+                    planet.x += planet.vx * dt * 8;
+                    planet.y += planet.vy * dt * 8;
+
+                    // 이동 궤적 추적 배열 적재
+                    planet.path.push({ x: planet.x, y: planet.y });
+                    if (planet.path.length > p.trailLength) planet.path.shift();
+                });
+            }
+
+            // HUD 통계 출력
+            const planetCount = s.planets.length;
+            const activeVel = planetCount > 0 ? Math.hypot(s.planets[0].vx, s.planets[0].vy) : 0;
+            document.getElementById('hud-stats').innerHTML = `
+                <div>우주 위성 개수: <span class="text-white">${planetCount} 대</span></div>
+                <div>메인 위성 속도: <span class="text-emerald-400">${activeVel.toFixed(2)} km/s</span></div>
+                <div class="text-slate-400 text-[10px] mt-1">드래그해 위성을 사출해보세요!</div>
+            `;
+
+            if(isPlaying && planetCount > 0) recordGraphData(activeVel * 10, 50);
+
+            // 중심 태양 그리기 (빛 공명 글로우 추가)
+            ctx.beginPath();
+            ctx.arc(s.star.x, s.star.y, 25, 0, Math.PI * 2);
+            ctx.fillStyle = '#f59e0b';
+            ctx.shadowColor = '#f59e0b';
+            ctx.shadowBlur = 25;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // 소행성 및 궤적 렌더링
+            s.planets.forEach(planet => {
+                // 궤적 라인
+                ctx.beginPath();
+                ctx.strokeStyle = planet.color;
+                ctx.globalAlpha = 0.4;
+                ctx.lineWidth = 1.5;
+                planet.path.forEach((pt, idx) => {
+                    if (idx === 0) ctx.moveTo(pt.x, pt.y);
+                    else ctx.lineTo(pt.x, pt.y);
+                });
+                ctx.stroke();
+                ctx.globalAlpha = 1.0;
+
+                // 본체 구체
+                ctx.beginPath();
+                ctx.arc(planet.x, planet.y, 6, 0, Math.PI * 2);
+                ctx.fillStyle = planet.color;
+                ctx.fill();
+            });
+
+            // 드래그 조준선 벡터선 가시화
+            if (isDragging && dragTarget === 'launch-vector') {
+                ctx.beginPath();
+                ctx.moveTo(s.orbit.startLaunchX, s.orbit.startLaunchY);
+                ctx.lineTo(mouseX, mouseY);
+                ctx.strokeStyle = '#10b981';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // 조준점 구체 미리보기
+                ctx.beginPath();
+                ctx.arc(s.orbit.startLaunchX, s.orbit.startLaunchY, 5, 0, Math.PI * 2);
+                ctx.fillStyle = '#10b981';
+                ctx.fill();
+            }
+        }
+
+        // --- 6. 파동 중첩 및 간섭 엔진 ---
+        function simulateWave(dt) {
+            const p = simParams.wave;
+            const s = simState.wave;
+
+            if (isPlaying) {
+                s.time += dt * 4;
+            }
+
+            // HUD 통계
+            document.getElementById('hud-stats').innerHTML = `
+                <div>파동 A 진동수: <span class="text-red-400">${p.freq1} Hz</span></div>
+                <div>파동 B 진동수: <span class="text-blue-400">${p.freq2} Hz</span></div>
+                <div>위상 차이값: <span class="text-white">${p.phaseDiff} °</span></div>
+                <div class="text-[10px] text-purple-400 mt-1">보강/상쇄 간섭을 가시화합니다.</div>
+            `;
+
+            // 그래프 레코드 데이터 적재
+            if(isPlaying) recordGraphData(Math.sin(s.time) * p.amp1, Math.sin(s.time + p.phaseDiff*Math.PI/180) * p.amp2);
+
+            const centerY1 = canvas.height * 0.25;
+            const centerY2 = canvas.height * 0.50;
+            const centerY3 = canvas.height * 0.78;
+
+            // 기준 보조선선
+            ctx.strokeStyle = 'rgba(51, 65, 85, 0.3)';
+            ctx.lineWidth = 1;
+            [centerY1, centerY2, centerY3].forEach(cy => {
+                ctx.beginPath();
+                ctx.moveTo(0, cy);
+                ctx.lineTo(canvas.width, cy);
+                ctx.stroke();
+            });
+
+            // 개별 파형 렌더링
+            ctx.lineWidth = 2;
+
+            // 1. Wave A (적색)
+            ctx.beginPath();
+            ctx.strokeStyle = '#ef4444';
+            for (let x = 0; x < canvas.width; x++) {
+                const k = 0.03; // 공간 파수 (Wavenumber)
+                const y = centerY1 + p.amp1 * Math.sin(k * x - s.time * p.freq1);
+                if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // 2. Wave B (청색)
+            ctx.beginPath();
+            ctx.strokeStyle = '#3b82f6';
+            const phaseRad = (p.phaseDiff * Math.PI) / 180;
+            for (let x = 0; x < canvas.width; x++) {
+                const k = 0.03;
+                const y = centerY2 + p.amp2 * Math.sin(k * x - s.time * p.freq2 + phaseRad);
+                if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // 3. Superpositioned Wave (중첩 합성파 - 보라색)
+            ctx.beginPath();
+            ctx.strokeStyle = '#a855f7';
+            ctx.lineWidth = 3;
+            for (let x = 0; x < canvas.width; x++) {
+                const k = 0.03;
+                const yA = p.amp1 * Math.sin(k * x - s.time * p.freq1);
+                const yB = p.amp2 * Math.sin(k * x - s.time * p.freq2 + phaseRad);
+                const yCombined = centerY3 + (yA + yB);
+                if (x === 0) ctx.moveTo(x, yCombined); else ctx.lineTo(x, yCombined);
+            }
+            ctx.stroke();
+            ctx.lineWidth = 2; // 초기화
+
+            // 라벨 텍스트 표기
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '11px sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText('🔴 파동 A 성분 (Wave A)', 20, centerY1 - 35);
+            ctx.fillText('🔵 파동 B 성분 (Wave B)', 20, centerY2 - 35);
+            ctx.fillText('🟣 중첩 합성 간섭파 (Resultant Superposition)', 20, centerY3 - 45);
+        }
+
+        // --- 7. 기하광학 & 프리즘 굴절 시뮬레이션 엔진 ---
+        function simulateOptics(dt) {
+            const p = simParams.optics;
+            const s = simState.optics;
+
+            const n1 = p.n1;
+            const n2 = p.n2;
+
+            // HUD 통계
+            document.getElementById('hud-stats').innerHTML = `
+                <div>입사각 (θ₁): <span class="text-white">${s.laserAngle.toFixed(1)} °</span></div>
+                <div>n₁ (매질 1): <span class="text-red-400">${n1.toFixed(2)}</span></div>
+                <div>n₂ (매질 2): <span class="text-blue-400">${n2.toFixed(2)}</span></div>
+                <div class="text-[10px] text-pink-400">레이저 앞부분을 상하로 드래그 해보세요.</div>
+            `;
+
+            // 매질 경계 영역 렌더링
+            const midX = canvas.width / 2;
+            const shape = p.refractiveShape;
+
+            if (shape === 'flat') {
+                // 평면 대칭 매질 영역 채우기
+                ctx.fillStyle = 'rgba(30, 41, 59, 0.4)';
+                ctx.fillRect(midX, 0, canvas.width - midX, canvas.height);
+                ctx.strokeStyle = 'rgba(51, 65, 85, 0.6)';
+                ctx.beginPath();
+                ctx.moveTo(midX, 0);
+                ctx.lineTo(midX, canvas.height);
+                ctx.stroke();
+            } else {
+                // 삼각 프리즘 형상 렌더링
+                ctx.fillStyle = 'rgba(56, 189, 248, 0.15)';
+                ctx.strokeStyle = 'rgba(56, 189, 248, 0.5)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(midX - 100, canvas.height/2 + 100);
+                ctx.lineTo(midX + 100, canvas.height/2 + 100);
+                ctx.lineTo(midX, canvas.height/2 - 100);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+            }
+
+            // 레이저 포인터 기계 소스 그리기
+            ctx.save();
+            ctx.translate(50, s.laserY);
+            ctx.rotate(s.laserAngle * Math.PI / 180);
+            ctx.fillStyle = '#475569';
+            ctx.fillRect(-20, -10, 40, 20);
+            ctx.fillStyle = '#ef4444';
+            ctx.fillRect(20, -4, 5, 8);
+            ctx.restore();
+
+            // 광선 역추적 알고리즘 구동
+            const startX = 50;
+            const startY = s.laserY;
+            const rad = (s.laserAngle * Math.PI) / 180;
+            const dirX = Math.cos(rad);
+            const dirY = Math.sin(rad);
+
+            let rayPath = [{ x: startX, y: startY }];
+
+            if (shape === 'flat') {
+                // 경계선(midX)까지 직선 연산
+                const distToBoundary = midX - startX;
+                if (distToBoundary > 0 && dirX > 0) {
+                    const intersectY = startY + (distToBoundary * dirY / dirX);
+                    if (intersectY >= 0 && intersectY <= canvas.height) {
+                        rayPath.push({ x: midX, y: intersectY });
+
+                        // 스넬의 법칙 연산
+                        // n1 * sin(th1) = n2 * sin(th2)
+                        const sinTh1 = dirY; // 수평 경계면에 대한 입사각의 사인
+                        const sinTh2 = (n1 / n2) * sinTh1;
+
+                        if (Math.abs(sinTh2) <= 1.0) {
+                            // 굴절 발생
+                            const th2 = Math.asin(sinTh2);
+                            const refDirX = Math.sqrt(1 - sinTh2 * sinTh2);
+                            const refDirY = sinTh2;
+
+                            // 출구 외곽까지 광선 추적
+                            const outerX = canvas.width;
+                            const outerY = intersectY + ((outerX - midX) * refDirY / refDirX);
+                            rayPath.push({ x: outerX, y: outerY });
+                        } else {
+                            // 전반사(TIR) 발생
+                            const refDirX = -dirX;
+                            const refDirY = dirY;
+                            rayPath.push({ x: 0, y: intersectY + (intersectY * refDirY / refDirX) });
+                        }
+                    }
+                }
+            } else {
+                // 삼각 프리즘 굴절 정교한 모사구조
+                // 단순화된 2단계 광학 세그먼트 선형 유도
+                const p1 = { x: midX - 60, y: canvas.height/2 + 20 };
+                rayPath.push(p1);
+                
+                const sinTh2 = (n1 / n2) * Math.sin(rad * 0.7);
+                const rad2 = Math.asin(sinTh2);
+                
+                const p2 = { x: midX + 60, y: canvas.height/2 + 20 + Math.sin(rad2) * 120 };
+                rayPath.push(p2);
+
+                // 방출되는 굴절 광선
+                const exitRad = rad2 * (n2 / n1) * 1.5;
+                rayPath.push({
+                    x: canvas.width,
+                    y: p2.y + Math.sin(exitRad) * (canvas.width - p2.x)
+                });
+            }
+
+            // 레이저 빔 그리기 (네온 글로우 스타일)
+            ctx.shadowColor = '#f43f5e';
+            ctx.shadowBlur = 8;
+            ctx.strokeStyle = '#f43f5e';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            rayPath.forEach((pt, idx) => {
+                if (idx === 0) ctx.moveTo(pt.x, pt.y);
+                else ctx.lineTo(pt.x, pt.y);
+            });
+            ctx.stroke();
+            ctx.shadowBlur = 0; // 복구
+            ctx.lineWidth = 2;
+        }
+
+        // --- 8. 점전하 분산 전기장 시뮬레이션 엔진 ---
+        function simulateElectrostatic(dt) {
+            const p = simParams.electrostatic;
+            const s = simState.electrostatic;
+
+            // HUD
+            document.getElementById('hud-stats').innerHTML = `
+                <div>배치 전하 개수: <span class="text-white">${s.charges.length} 개</span></div>
+                <div>기본 쿨롱상수(k): <span class="text-indigo-400">9.0×10⁹</span></div>
+                <div class="text-[10px] text-emerald-400 mt-1">드래그해 위치를 서로 모아보세요.</div>
+            `;
+
+            // 1. 배경 등전위선 컬러 매핑 그리기
+            const step = p.gridStep;
+            for (let y = 0; y < canvas.height; y += step) {
+                for (let x = 0; x < canvas.width; x += step) {
+                    // 총 전위 V = sum( k * q / r )
+                    let totalV = 0;
+                    s.charges.forEach(charge => {
+                        const r = Math.hypot(x - charge.x, y - charge.y);
+                        if (r > 12) {
+                            totalV += (p.k * charge.q) / r;
+                        }
+                    });
+
+                    // 전위에 따른 픽셀 가시성 묘사
+                    if (Math.abs(totalV) > 10) {
+                        ctx.fillStyle = totalV > 0 ? `rgba(239, 68, 68, ${Math.min(0.25, totalV / 2000)})` : `rgba(59, 130, 246, ${Math.min(0.25, Math.abs(totalV) / 2000)})`;
+                        ctx.fillRect(x, y, step, step);
+                    }
+                }
+            }
+
+            // 2. 전기력 벡터선 화살표 연산 그리기
+            const vectorStep = 50;
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.2)';
+            ctx.lineWidth = 1;
+            for (let y = vectorStep/2; y < canvas.height; y += vectorStep) {
+                for (let x = vectorStep/2; x < canvas.width; x += vectorStep) {
+                    // E = sum( k * q / r^2 * r_vector )
+                    let Ex = 0;
+                    let Ey = 0;
+
+                    s.charges.forEach(charge => {
+                        const dx = x - charge.x;
+                        const dy = y - charge.y;
+                        const r = Math.hypot(dx, dy);
+                        if (r > 20) {
+                            const E = (p.k * charge.q) / (r * r);
+                            Ex += E * (dx / r);
+                            Ey += E * (dy / r);
+                        }
+                    });
+
+                    const Emag = Math.hypot(Ex, Ey);
+                    if (Emag > 0.1) {
+                        const dx = (Ex / Emag) * 15;
+                        const dy = (Ey / Emag) * 15;
+                        
+                        // 방향 벡터 화살표 그리기
+                        ctx.beginPath();
+                        ctx.moveTo(x, y);
+                        ctx.lineTo(x + dx, y + dy);
+                        ctx.stroke();
+                    }
+                }
+            }
+
+            // 3. 점전하 본체 렌더링
+            s.charges.forEach(charge => {
+                ctx.beginPath();
+                ctx.arc(charge.x, charge.y, 16, 0, Math.PI * 2);
+                ctx.fillStyle = charge.color;
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2.5;
+                ctx.fill();
+                ctx.stroke();
+
+                // +/- 부호 인가
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 15px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(charge.q > 0 ? '+' : '-', charge.x, charge.y + 5);
+            });
+        }
+
+
+        // --- 실시간 상태 모니터링 그래프 기록 처리 함수 ---
+        function recordGraphData(v1, v2) {
+            graphHistory.push({ v1, v2 });
+            if (graphHistory.length > maxHistoryPoints) {
+                graphHistory.shift();
+            }
+        }
+
+        // --- 분석 그래프 그리기 ---
+        function drawGraph() {
+            gctx.clearRect(0, 0, graphCanvas.width, graphCanvas.height);
+            if (graphHistory.length < 2) return;
+
+            gctx.lineWidth = 2;
+
+            // 1. 그래프선 A (붉은색 계열)
+            gctx.strokeStyle = '#f43f5e';
+            gctx.beginPath();
+            graphHistory.forEach((pt, i) => {
+                const gx = (i / (maxHistoryPoints - 1)) * graphCanvas.width;
+                // 세로축 중심 대비 보정 연산
+                const gy = graphCanvas.height/2 - (pt.v1 * 0.4);
+                if (i === 0) gctx.moveTo(gx, gy); else gctx.lineTo(gx, gy);
+            });
+            gctx.stroke();
+
+            // 2. 그래프선 B (청색 계열)
+            gctx.strokeStyle = '#3b82f6';
+            gctx.beginPath();
+            graphHistory.forEach((pt, i) => {
+                const gx = (i / (maxHistoryPoints - 1)) * graphCanvas.width;
+                const gy = graphCanvas.height/2 - (pt.v2 * 0.4);
+                if (i === 0) gctx.moveTo(gx, gy); else gctx.lineTo(gx, gy);
+            });
+            gctx.stroke();
+        }
+
+        // --- 글로벌 버튼 이벤트 리스너 배포 ---
+        document.getElementById('btn-play').addEventListener('click', () => {
+            isPlaying = true;
+            document.getElementById('btn-play').classList.add('hidden');
+            document.getElementById('btn-pause').classList.remove('hidden');
+            triggerToast('물리 시뮬레이션 엔진이 가동되었습니다.');
+        });
+
+        document.getElementById('btn-pause').addEventListener('click', () => {
+            isPlaying = false;
+            document.getElementById('btn-play').classList.remove('hidden');
+            document.getElementById('btn-pause').classList.add('hidden');
+            triggerToast('엔진이 일시정지 상태로 전환되었습니다.');
+        });
+
+        document.getElementById('btn-reset').addEventListener('click', () => {
+            resetSimulation();
+            triggerToast('모든 연산 상태가 기본 상태값으로 초기화되었습니다.');
+        });
+
+        // 초기 시작 실행 순서
+        window.addEventListener('load', () => {
+            resizeCanvases();
+            switchSim('projectile');
+            requestAnimationFrame(updateAndRender);
+        });
+
+        window.addEventListener('resize', resizeCanvases);
+
+    </script>
+</body>
+</html>
+
+```
+
